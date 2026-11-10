@@ -1,11 +1,11 @@
 {
-  "name": "かぞくToDo",
-  "short_name": "かぞくToDo",
+  "name": "HOME✦BASE",
+  "short_name": "HOMEBASE",
   "start_url": "./#today",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#f6f1e9",
-  "theme_color": "#f6f1e9",
+  "background_color": "#EAF7FF",
+  "theme_color": "#EAF7FF",
   "lang": "ja",
   "icons": [
     { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },

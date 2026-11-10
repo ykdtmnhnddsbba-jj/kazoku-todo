@@ -70,6 +70,7 @@ const schedText = (s) => s.type === 'once'
 // ---------- 状態 ----------
 let state = null;          // /api/state の結果
 let viewDate = null;       // 表示中の日付
+const justDone = new Set(); // 今押したばかり（スタンプをアニメーションさせる）
 const memberById = (id) => state?.members.find((m) => m.id === id) || { id, name: id, emoji: '🙂' };
 const me = () => cfg.me && memberById(cfg.me);
 // 顔アイコン（写真があれば写真、なければ絵文字）
@@ -244,11 +245,14 @@ function cardHtml(it, idx) {
     act = `<div class="act"><button class="btn ghost big" data-skip="${idx}">今日はなし → 戻す</button></div>`;
   } else if (myTarget) {
     act = myTarget.done_at
-      ? `<div class="donebar"><span class="ck">✅</span><span class="dt"><b>${t.mode === 'any' && myTarget.done_by ? `${esc(memberById(myTarget.done_by).name)}が${esc(t.done_label)}` : `${esc(t.done_label)}！`}</b><small>${hm(myTarget.done_at)} に完了</small></span><button class="undo" data-done="${idx}|undo">取り消す</button></div>`
+      ? `<div class="donebar"><span class="ck">✓</span><span class="dt"><b>${t.mode === 'any' && myTarget.done_by ? `${esc(memberById(myTarget.done_by).name)}が${esc(t.done_label)}` : `${esc(t.done_label)}！`}</b><small>${hm(myTarget.done_at)} に完了</small></span><button class="undo" data-done="${idx}|undo">取り消す</button></div>`
       : `<div class="act"><button class="btn big" data-done="${idx}">${esc(t.done_label)}！</button></div>`;
   }
 
-  return `<div class="card ${mine ? 'mine' : ''} ${allDone ? 'alldone' : ''} ${it.skipped ? 'skipped' : ''}">
+  const stampKey = `${t.id}|${state.date}`;
+  const stamp = allDone && !it.skipped ? `<span class="stamp${justDone.has(stampKey) ? ' new' : ''}" style="top:-14px;right:44px">CLEAR!</span>` : '';
+  justDone.delete(stampKey);
+  return `<div class="card ${mine ? 'mine' : ''} ${allDone ? 'alldone' : ''} ${it.skipped ? 'skipped' : ''}">${stamp}
       <div class="row1"><span class="time">${esc(t.sched.time)}</span><h3>${esc(t.title)}</h3>
         <button class="more" data-menu="${idx}" aria-label="メニュー">⋯</button></div>
       ${t.note ? `<p class="note">${esc(t.note)}</p>` : ''}
@@ -268,7 +272,7 @@ function bindCards() {
     b.disabled = true;
     busy(async () => {
       await api('/api/done', { body: { task_id: it.task.id, date, target, by: cfg.me, undo: !!undo } });
-      if (!undo) toast('えらい！✨');
+      if (!undo) { justDone.add(`${it.task.id}|${date}`); toast('CLEAR! ナイス ✨'); }
     });
   });
 
