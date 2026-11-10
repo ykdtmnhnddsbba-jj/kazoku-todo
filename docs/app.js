@@ -447,6 +447,15 @@ async function renderSettings() {
         ${ps === 'inapp' || ps === 'unsupported' ? openChromeBtn() : ''}
       </div>
     </div>
+    <div class="panel"><h3>📣 通知をポップアップで出すには</h3>
+      <p>最初は通知欄に入るだけのことがあるよ。1回だけ設定してね。</p>
+      <ol style="margin:6px 0 0;padding-left:20px;font-size:14px;line-height:1.7">
+        <li>上の［テスト通知を送る］を押す</li>
+        <li>届いた通知を<b>長押し</b> → <b>⚙（設定）</b></li>
+        <li>「<b>ポップアップで表示</b>」をON（機種によっては重要度を「<b>緊急</b>」に）</li>
+        <li>「音」「バイブ」もONにしておくと気付きやすい</li>
+      </ol>
+    </div>
     <div class="panel"><h3>家族の名前</h3>
       ${state.members.map((m) => `<div class="mrow" data-id="${m.id}"><input value="${esc(m.emoji)}" maxlength="4" aria-label="絵文字"><input value="${esc(m.name)}" maxlength="12" aria-label="名前"></div>`).join('')}
       <button class="btn" id="saveMembers">名前を保存</button>
