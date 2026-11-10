@@ -57,3 +57,9 @@ test('誰か1人でOKは宛先1つ、全員それぞれは人数分', () => {
 test('予定時刻から3時間以上たってからの初回通知は出さない', () => {
   assert.equal(planNotifications([gomi], none, noSkip, jst('2026-11-09T11:00:00')).length, 0);
 });
+
+test('「いつか」ToDo はどの日にも通知されない', () => {
+  const someday = { id: 's1', active: true, mode: 'each', assignees: ['papa'], sched: { type: 'someday' }, snooze_min: 10, max_renotify: 2 };
+  assert.ok(!isDueOn(someday, '2026-11-10'));
+  assert.equal(planNotifications([someday], none, noSkip, jst('2026-11-10T12:00:00')).length, 0);
+});

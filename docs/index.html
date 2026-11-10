@@ -176,6 +176,11 @@
   .menu { position: absolute; right: 10px; top: 40px; background: #fff; border: var(--b); border-radius: 14px; box-shadow: var(--pop); z-index: 3; overflow: hidden; }
   .menu button { display: block; width: 100%; text-align: left; background: none; border: none; padding: 11px 16px; font-size: 14px; font-weight: 800; white-space: nowrap; }
   .menu button + button { border-top: 2px solid var(--ink); }
+  .filter { display: flex; gap: 6px; margin: 4px 0 14px; }
+  .filter button { border: 2px solid var(--ink); background: #fff; border-radius: 999px; padding: 6px 14px; font-weight: 800; }
+  .filter button.on { background: var(--yellow); box-shadow: 2px 2px 0 var(--ink); }
+  .time.someday { color: var(--pink); font-size: 12px; border: 2px solid var(--pink); border-radius: 999px; padding: 0 7px; white-space: nowrap; }
+  .lead { color: var(--sub); font-size: 13px; margin: 0 4px 12px; }
   .loading { text-align: center; color: var(--sub); padding: 30px; font-weight: 800; }
 </style>
 </head>
@@ -187,6 +192,7 @@
 <main class="wrap" id="view"><div class="loading">読み込み中…</div></main>
 <nav class="tabs" id="tabs" hidden>
   <a href="#today" data-tab="today"><span class="i">📅</span>きょう</a>
+  <a href="#someday" data-tab="someday"><span class="i">🗂️</span>いつか</a>
   <a href="#list" data-tab="list"><span class="i">📝</span>ルーティーン</a>
   <a href="#settings" data-tab="settings"><span class="i">⚙️</span>設定</a>
 </nav>

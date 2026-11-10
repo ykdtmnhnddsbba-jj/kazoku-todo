@@ -109,15 +109,16 @@ async function runCron(env, nowMs = Date.now()) {
 }
 
 // ---- 画面用：ある日の一覧 ----
+// ymd に 'someday' を渡すと「いつか」ToDo の一覧（完了状態は date='someday' に記録）
 async function dayView(env, ymd) {
   const db = env.DB;
-  const tasks = (await loadTasks(db, true)).filter((t) => isDueOn(t, ymd));
+  const tasks = (await loadTasks(db, true)).filter((t) => (ymd === 'someday' ? t.sched.type === 'someday' : isDueOn(t, ymd)));
   const { results: occs } = await db.prepare('SELECT * FROM occ WHERE date = ?').bind(ymd).all();
   const { results: skips } = await db.prepare('SELECT * FROM skips WHERE date = ?').bind(ymd).all();
   const skipSet = new Set(skips.map((s) => s.task_id));
   const occMap = new Map(occs.map((o) => [`${o.task_id}|${o.target}`, o]));
   return tasks
-    .sort((a, b) => hmToMin(a.sched.time) - hmToMin(b.sched.time))
+    .sort((a, b) => hmToMin(a.sched.time) - hmToMin(b.sched.time) || (b.updated_at || 0) - (a.updated_at || 0))
     .map((t) => ({
       task: t,
       skipped: skipSet.has(t.id),
@@ -185,6 +186,7 @@ async function handleApi(req, env, url) {
       members: await loadMembers(db),
       tasks: await loadTasks(db),
       day: await dayView(env, date),
+      someday: await dayView(env, 'someday'),
     });
   }
 
@@ -212,7 +214,8 @@ async function handleApi(req, env, url) {
 
   if (path === '/api/tasks' && req.method === 'POST') {
     const t = body.task || {};
-    if (!t.title || !t.sched?.time) return json({ error: 'タイトルと時刻は必須' }, 400);
+    if (!t.title) return json({ error: 'タイトルを入れてね' }, 400);
+    if (t.sched?.type !== 'someday' && !t.sched?.time) return json({ error: '時刻を入れてね' }, 400);
     const id = t.id || crypto.randomUUID().slice(0, 8);
     await db.prepare(
       `INSERT INTO tasks (id, title, note, checklist, assignees, mode, sched, snooze_min, max_renotify, done_label, active, created_by, updated_at)

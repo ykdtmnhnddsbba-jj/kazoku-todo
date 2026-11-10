@@ -63,13 +63,15 @@ const addDays = (ymd, n) => {
 const dowOf = (ymd) => { const [y, m, d] = ymd.split('-').map(Number); return new Date(Date.UTC(y, m - 1, d)).getUTCDay(); };
 const hm = (ms) => { const d = new Date(ms); return `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`; };
 const fmtDate = (ymd) => { const [, m, d] = ymd.split('-').map(Number); return `${m}月${d}日（${DOW[dowOf(ymd)]}）`; };
-const schedText = (s) => s.type === 'once'
+const schedText = (s) => s.type === 'someday' ? 'いつか' : s.type === 'once'
   ? `${fmtDate(s.date)} ${s.time}`
   : `毎週 ${[...s.days].sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7)).map((d) => DOW[d]).join('・')} ${s.time}`;
 
 // ---------- 状態 ----------
 let state = null;          // /api/state の結果
 let viewDate = null;       // 表示中の日付
+let cur = { items: [], date: null, rerender: () => {} }; // 今表示しているカード一覧（きょう／いつか）
+let somedayFilter = 'all';
 const justDone = new Set(); // 今押したばかり（スタンプをアニメーションさせる）
 const memberById = (id) => state?.members.find((m) => m.id === id) || { id, name: id, emoji: '🙂' };
 const me = () => cfg.me && memberById(cfg.me);
@@ -91,7 +93,8 @@ async function route() {
   const hash = location.hash.slice(1) || 'today';
   const [name, arg] = hash.split('/');
   document.getElementById('tabs').hidden = !(cfg.api && cfg.me);
-  document.querySelectorAll('nav.tabs a').forEach((a) => a.classList.toggle('on', a.dataset.tab === (name === 'edit' ? 'list' : name)));
+  const editTab = arg === 'new-someday' || state?.tasks.find((t) => t.id === arg)?.sched.type === 'someday' ? 'someday' : 'list';
+  document.querySelectorAll('nav.tabs a').forEach((a) => a.classList.toggle('on', a.dataset.tab === (name === 'edit' ? editTab : name)));
 
   if (!cfg.api || !cfg.key) return renderNoConfig();
   try {
@@ -105,6 +108,7 @@ async function route() {
   b.hidden = false; b.innerHTML = who(me());
 
   if (name === 'list') return renderList();
+  if (name === 'someday') return renderSomeday();
   if (name === 'edit') return renderEdit(arg);
   if (name === 'settings') return renderSettings();
   return renderToday();
@@ -198,6 +202,7 @@ async function renderToday() {
   } else {
     html += `<div class="grid">${items.map(cardHtml).join('')}</div>`;
   }
+  cur = { items, date: d, rerender: renderToday };
   $view.innerHTML = html;
 
   $view.querySelectorAll('[data-go]').forEach((b) => b.onclick = async () => {
@@ -249,11 +254,12 @@ function cardHtml(it, idx) {
       : `<div class="act"><button class="btn big" data-done="${idx}">${esc(t.done_label)}！</button></div>`;
   }
 
-  const stampKey = `${t.id}|${state.date}`;
+  const someday = t.sched.type === 'someday';
+  const stampKey = `${t.id}|${cur.date}`;
   const stamp = allDone && !it.skipped ? `<span class="stamp${justDone.has(stampKey) ? ' new' : ''}" style="top:-14px;right:44px">CLEAR!</span>` : '';
   justDone.delete(stampKey);
   return `<div class="card ${mine ? 'mine' : ''} ${allDone ? 'alldone' : ''} ${it.skipped ? 'skipped' : ''}">${stamp}
-      <div class="row1"><span class="time">${esc(t.sched.time)}</span><h3>${esc(t.title)}</h3>
+      <div class="row1">${someday ? '<span class="time someday">いつか</span>' : `<span class="time">${esc(t.sched.time)}</span>`}<h3>${esc(t.title)}</h3>
         <button class="more" data-menu="${idx}" aria-label="メニュー">⋯</button></div>
       ${t.note ? `<p class="note">${esc(t.note)}</p>` : ''}
       ${it.skipped ? '<div class="chips"><span class="chip wait">💤 今日はなし</span></div>' : `<div class="chips">${chips}</div>`}
@@ -262,12 +268,12 @@ function cardHtml(it, idx) {
 }
 
 function bindCards() {
-  const date = state.date;
-  const busy = async (fn) => { try { await fn(); await load(viewDate); renderToday(); } catch (e) { toast(e.message); } };
+  const date = cur.date;
+  const busy = async (fn) => { try { await fn(); await load(viewDate); cur.rerender(); } catch (e) { toast(e.message); } };
 
   $view.querySelectorAll('[data-done]').forEach((b) => b.onclick = () => {
     const [idx, undo] = b.dataset.done.split('|');
-    const it = state.day[idx];
+    const it = cur.items[idx];
     const target = it.task.mode === 'any' ? '*' : cfg.me;
     b.disabled = true;
     busy(async () => {
@@ -278,7 +284,7 @@ function bindCards() {
 
   $view.querySelectorAll('[data-toggle]').forEach((b) => b.onclick = () => {
     const [idx, target] = b.dataset.toggle.split('|');
-    const it = state.day[idx];
+    const it = cur.items[idx];
     const x = it.targets.find((y) => y.target === target);
     const who = target === '*' ? '' : `${memberById(target).name}の分を`;
     const msg = x.done_at ? `${who}未完了に戻す？` : `${who}完了にする？`;
@@ -288,7 +294,7 @@ function bindCards() {
 
   $view.querySelectorAll('[data-check]').forEach((c) => c.onchange = async () => {
     const [idx, i] = c.dataset.check.split('|').map(Number);
-    const it = state.day[idx];
+    const it = cur.items[idx];
     const tg = it.task.mode === 'any' ? it.targets[0] : it.targets.find((y) => y.target === cfg.me);
     const checks = it.task.checklist.map((_, k) => !!tg.checks[k]);
     checks[i] = c.checked;
@@ -301,17 +307,19 @@ function bindCards() {
   });
 
   $view.querySelectorAll('[data-skip]').forEach((b) => b.onclick = () => {
-    const it = state.day[b.dataset.skip];
+    const it = cur.items[b.dataset.skip];
     busy(() => api('/api/skip', { body: { task_id: it.task.id, date, undo: true } }));
   });
 
   $view.querySelectorAll('[data-menu]').forEach((b) => b.onclick = (ev) => {
     ev.stopPropagation();
     document.querySelectorAll('.menu').forEach((m) => m.remove());
-    const it = state.day[b.dataset.menu];
+    const it = cur.items[b.dataset.menu];
     const menu = document.createElement('div');
     menu.className = 'menu';
-    menu.innerHTML = `${it.skipped ? '' : '<button data-a="skip">💤 今日はなし（通知しない）</button>'}<button data-a="edit">✏️ 編集する</button>`;
+    menu.innerHTML = it.task.sched.type === 'someday'
+      ? '<button data-a="edit">📅 日にちを決める・編集する</button>'
+      : `${it.skipped ? '' : '<button data-a="skip">💤 今日はなし（通知しない）</button>'}<button data-a="edit">✏️ 編集する</button>`;
     b.closest('.card').appendChild(menu);
     menu.onclick = (e) => {
       const a = e.target.dataset.a;
@@ -322,6 +330,31 @@ function bindCards() {
   });
 }
 document.addEventListener('click', () => document.querySelectorAll('.menu').forEach((m) => m.remove()));
+
+// ---------- いつか（日付未定） ----------
+function renderSomeday() {
+  const all = state.someday || [];
+  const isMine = (it) => it.task.assignees.includes(cfg.me);
+  const list = somedayFilter === 'mine' ? all.filter(isMine) : all;
+  const allDone = (it) => it.targets.every((x) => x.done_at);
+  const lastDone = (it) => Math.max(...it.targets.map((x) => x.done_at || 0));
+  const todo = list.filter((it) => !allDone(it));
+  const done = list.filter(allDone).sort((a, b) => lastDone(b) - lastDone(a)).slice(0, 20);
+  const items = [...todo, ...done];
+  const card = (it) => cardHtml(it, items.indexOf(it));
+  cur = { items, date: 'someday', rerender: renderSomeday };
+  $view.innerHTML = `
+    <p class="lead">日にちは決まってないけど、いつかやること。通知はしないから、ときどき見てね。</p>
+    <div class="filter">
+      <button data-f="all" class="${somedayFilter === 'all' ? 'on' : ''}">みんなの（${all.filter((it) => !allDone(it)).length}）</button>
+      <button data-f="mine" class="${somedayFilter === 'mine' ? 'on' : ''}">${who(me())}の（${all.filter((it) => isMine(it) && !allDone(it)).length}）</button>
+    </div>
+    ${todo.length ? `<div class="grid">${todo.map(card).join('')}</div>` : '<div class="empty"><div class="em">🎉</div><p>いつかやることは全部すんだ！</p></div>'}
+    ${done.length ? `<h2 class="sec">すんだもの</h2><div class="grid">${done.map(card).join('')}</div>` : ''}
+    <button class="fab" aria-label="いつかやることを追加" onclick="location.hash='#edit/new-someday'">＋</button>`;
+  $view.querySelectorAll('[data-f]').forEach((b) => b.onclick = () => { somedayFilter = b.dataset.f; renderSomeday(); });
+  bindCards();
+}
 
 // ---------- ルーティーン一覧 ----------
 function renderList() {
@@ -349,11 +382,13 @@ function renderEdit(id) {
   const base = state.tasks.find((t) => t.id === id);
   const t = base ? JSON.parse(JSON.stringify(base)) : {
     title: '', note: '', checklist: [], assignees: [cfg.me], mode: 'each',
-    sched: { type: 'once', date: viewDate || state.today, time: '07:30', days: [dowOf(state.today)] },
+    sched: { type: id === 'new-someday' ? 'someday' : 'once', date: viewDate || state.today, time: '07:30', days: [dowOf(state.today)] },
     snooze_min: 10, max_renotify: 2, done_label: '完了', active: true,
   };
   if (!t.sched.days) t.sched.days = [dowOf(t.sched.date || state.today)];
   if (!t.sched.date) t.sched.date = state.today;
+  if (!t.sched.time) t.sched.time = '07:30';
+  const backTo = () => (t.sched.type === 'someday' ? '#someday' : '#list');
 
   const seg = (name, opts, cur, multi) => `<div class="seg" data-seg="${name}">${opts.map(([v, l]) =>
     `<button type="button" data-v="${v}" class="${(multi ? cur.includes(v) : cur === v) ? 'on' : ''}">${l}</button>`).join('')}</div>`;
@@ -361,16 +396,17 @@ function renderEdit(id) {
   $view.innerHTML = `<h2 class="sec">${base ? '編集' : '新しく追加'}</h2>
   <form class="edit" id="f">
     <div class="field"><label>タイトル</label><input type="text" name="title" value="${esc(t.title)}" placeholder="例：集金袋を出す" required maxlength="80"></div>
-    <div class="field"><span class="lbl">いつ</span>${seg('type', [['weekly', '毎週'], ['once', '日にち指定']], t.sched.type)}</div>
+    <div class="field"><span class="lbl">いつ</span>${seg('type', [['weekly', '毎週'], ['once', '日にち指定'], ['someday', 'いつか']], t.sched.type)}
+      <p class="hint" id="somedayHint">日にちが決まったら「日にち指定」に変えると、その日に通知されるよ</p></div>
     <div class="field" id="daysF"><span class="lbl">曜日</span>${seg('days', [1, 2, 3, 4, 5, 6, 0].map((d) => [d, DOW[d]]), t.sched.days, true)}</div>
-    <div class="two">
+    <div class="two" id="whenF">
       <div class="field" id="dateF"><label>日にち</label><input type="date" name="date" value="${esc(t.sched.date)}"></div>
       <div class="field"><label>通知する時刻</label><input type="time" name="time" value="${esc(t.sched.time)}" required></div>
     </div>
     <div class="field"><span class="lbl">だれに</span>${seg('assignees', state.members.map((m) => [m.id, who(m)]), t.assignees, true)}</div>
     <div class="field" id="modeF"><span class="lbl">完了のしかた</span>${seg('mode', [['each', '全員それぞれ'], ['any', '誰か1人でOK']], t.mode)}
       <p class="hint">「誰か1人でOK」は、1人が押すとほかの人の通知が止まります（迎えなど）</p></div>
-    <div class="two">
+    <div class="two" id="nagF">
       <div class="field"><label>再通知の間隔（分）</label><input type="number" name="snooze_min" min="1" max="240" value="${t.snooze_min}"></div>
       <div class="field"><label>再通知の回数</label><input type="number" name="max_renotify" min="0" max="10" value="${t.max_renotify}"></div>
     </div>
@@ -391,6 +427,10 @@ function renderEdit(id) {
     document.getElementById('daysF').hidden = t.sched.type !== 'weekly';
     document.getElementById('dateF').hidden = t.sched.type !== 'once';
     document.getElementById('modeF').hidden = t.assignees.length < 2;
+    const sd = t.sched.type === 'someday';
+    ['whenF', 'nagF', 'nagHint'].forEach((x) => { document.getElementById(x).hidden = sd; });
+    document.getElementById('somedayHint').hidden = !sd;
+    f.time.required = !sd;
     const s = Number(f.snooze_min.value) || 0, n = Number(f.max_renotify.value) || 0;
     const [h, m] = (f.time.value || '00:00').split(':').map(Number);
     const times = [h * 60 + m];
@@ -421,6 +461,7 @@ function renderEdit(id) {
     if (t.sched.type === 'weekly' && !t.sched.days.length) return toast('曜日を選んでね');
     const sched = t.sched.type === 'weekly'
       ? { type: 'weekly', days: t.sched.days.slice().sort(), time: f.time.value }
+      : t.sched.type === 'someday' ? { type: 'someday' }
       : { type: 'once', date: f.date.value, time: f.time.value };
     const task = {
       id: base?.id, title: f.title.value.trim(), note: f.note.value.trim(),
@@ -431,14 +472,14 @@ function renderEdit(id) {
     };
     try {
       await api('/api/tasks', { body: { task, by: cfg.me } });
-      await load(viewDate); toast('保存したよ'); location.hash = '#list';
+      await load(viewDate); toast('保存したよ'); location.hash = backTo();
     } catch (err) { toast(err.message); }
   };
   const del = document.getElementById('del');
   if (del) del.onclick = async () => {
     if (!confirm(`「${base.title}」を削除する？`)) return;
     await api('/api/tasks/' + base.id, { method: 'DELETE' });
-    await load(viewDate); toast('削除したよ'); location.hash = '#list';
+    await load(viewDate); toast('削除したよ'); location.hash = backTo();
   };
 }
 
