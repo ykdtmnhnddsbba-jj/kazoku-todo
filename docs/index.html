@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f6f1e9">
+<title>かぞくToDo</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+  :root {
+    --bg: #f6f1e9; --card: #fffdf9; --ink: #2b2620; --sub: #7a7066; --line: #e7ddd0;
+    --accent: #e8664a; --accent-soft: #fde6df; --ok: #2f9e6e; --ok-soft: #dff3e9; --warn: #c98a12;
+    --radius: 16px; --shadow: 0 1px 2px rgba(60,40,20,.06), 0 4px 14px rgba(60,40,20,.06);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "Hiragino Maru Gothic ProN", "BIZ UDPGothic", "Noto Sans JP", system-ui, sans-serif; }
+  body { padding-bottom: calc(76px + env(safe-area-inset-bottom)); }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 16px 16px 24px; }
+  header.top { display: flex; align-items: center; gap: 10px; padding: 14px 16px 4px; max-width: 980px; margin: 0 auto; }
+  header.top h1 { font-size: 20px; margin: 0; letter-spacing: .02em; }
+  header.top .me { margin-left: auto; font-size: 14px; color: var(--sub); background: var(--card);
+    border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; }
+
+  .daynav { display: flex; align-items: center; gap: 8px; margin: 6px 0 14px; }
+  .daynav .date { font-size: 22px; font-weight: 700; }
+  .daynav .date small { font-size: 14px; color: var(--sub); font-weight: 400; margin-left: 6px; }
+  .daynav .sp { flex: 1; }
+  .iconbtn { border: 1px solid var(--line); background: var(--card); border-radius: 12px; min-width: 40px; height: 40px; padding: 0 12px; }
+
+  .banner { background: var(--accent-soft); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 14px;
+    display: flex; gap: 10px; align-items: center; }
+  .banner p { margin: 0; flex: 1; font-size: 14px; }
+
+  .grid { display: grid; gap: 12px; grid-template-columns: 1fr; }
+  @media (min-width: 760px) { .grid { grid-template-columns: 1fr 1fr; } }
+
+  .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 14px 16px; position: relative;
+    border: 2px solid transparent; }
+  .card.mine { border-color: var(--accent-soft); }
+  .card.alldone { opacity: .62; }
+  .card.skipped { opacity: .45; }
+  .card .row1 { display: flex; align-items: baseline; gap: 10px; }
+  .card .time { font-size: 15px; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+  .card.alldone .time { color: var(--ok); }
+  .card h3 { margin: 0; font-size: 17px; line-height: 1.35; flex: 1; }
+  .card .note { color: var(--sub); font-size: 13px; margin: 4px 0 0; white-space: pre-wrap; }
+  .card .more { border: none; background: none; color: var(--sub); font-size: 20px; line-height: 1; padding: 0 2px; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .chip { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 4px 10px; font-size: 13px;
+    background: #f1ebe2; border: 1px solid transparent; }
+  .chip.done { background: var(--ok-soft); color: #1d6b49; }
+  .chip.wait { background: #f1ebe2; color: var(--sub); }
+  .chip.nag { background: #fff2d6; color: #8a5b00; }
+  button.chip { cursor: pointer; }
+
+  .checks { margin: 10px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+  .checks label { display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: #faf6f0; border-radius: 10px; font-size: 15px; }
+  .checks input { width: 20px; height: 20px; accent-color: var(--ok); }
+  .checks .on { text-decoration: line-through; color: var(--sub); }
+
+  .act { margin-top: 12px; display: flex; gap: 8px; }
+  .btn { border: none; border-radius: 12px; padding: 11px 16px; font-weight: 700; background: var(--accent); color: #fff; }
+  .btn.big { flex: 1; font-size: 16px; }
+  .btn.ghost { background: transparent; color: var(--sub); border: 1px solid var(--line); font-weight: 400; }
+  .btn.ok { background: var(--ok); }
+  .btn.danger { background: #fff; color: #c0392b; border: 1px solid #f0c4bd; }
+  .btn:disabled { opacity: .5; }
+
+  .empty { text-align: center; color: var(--sub); padding: 40px 0; }
+  .empty .em { font-size: 44px; }
+
+  h2.sec { font-size: 14px; color: var(--sub); margin: 20px 4px 8px; font-weight: 700; letter-spacing: .05em; }
+  .list { display: grid; gap: 8px; }
+  .item { background: var(--card); border-radius: 14px; box-shadow: var(--shadow); padding: 12px 14px; display: flex; align-items: center; gap: 12px; border: none; text-align: left; width: 100%; }
+  .item .t { flex: 1; min-width: 0; }
+  .item .t b { display: block; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .item .t span { font-size: 13px; color: var(--sub); }
+  .item.off { opacity: .5; }
+  .item .who { font-size: 18px; letter-spacing: 1px; }
+
+  .fab { position: fixed; right: 18px; bottom: calc(86px + env(safe-area-inset-bottom)); width: 58px; height: 58px; border-radius: 50%;
+    background: var(--accent); color: #fff; border: none; font-size: 30px; box-shadow: 0 6px 18px rgba(232,102,74,.4); }
+
+  form.edit { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px; display: grid; gap: 16px; }
+  .field > label, .field > .lbl { display: block; font-size: 13px; color: var(--sub); margin-bottom: 6px; font-weight: 700; }
+  .field input[type=text], .field input[type=date], .field input[type=time], .field input[type=number], .field textarea, .field select {
+    width: 100%; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: #fff; }
+  .field textarea { min-height: 84px; resize: vertical; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .seg { display: flex; flex-wrap: wrap; gap: 6px; }
+  .seg button { border: 1px solid var(--line); background: #fff; border-radius: 10px; padding: 8px 12px; min-width: 44px; }
+  .seg button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .hint { font-size: 12px; color: var(--sub); margin-top: 6px; }
+  .formact { display: flex; gap: 8px; }
+  .formact .btn { flex: 1; }
+
+  .panel { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px; margin-bottom: 12px; }
+  .panel h3 { margin: 0 0 10px; font-size: 16px; }
+  .panel p { margin: 6px 0; font-size: 14px; }
+  .mrow { display: grid; grid-template-columns: 64px 1fr; gap: 8px; margin-bottom: 8px; }
+  .mrow input { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; width: 100%; background: #fff; text-align: center; }
+  .mrow input + input { text-align: left; }
+  .who-pick { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .who-pick button { background: var(--card); border: 2px solid var(--line); border-radius: 16px; padding: 18px 8px; font-size: 16px; }
+  .who-pick button .e { display: block; font-size: 36px; margin-bottom: 4px; }
+  .who-pick button.on { border-color: var(--accent); background: var(--accent-soft); }
+  code.url { display: block; word-break: break-all; background: #faf6f0; padding: 8px 10px; border-radius: 8px; font-size: 12px; }
+
+  nav.tabs { position: fixed; left: 0; right: 0; bottom: 0; background: rgba(255,253,249,.96); backdrop-filter: blur(8px);
+    border-top: 1px solid var(--line); display: flex; padding-bottom: env(safe-area-inset-bottom); z-index: 5; }
+  nav.tabs a { flex: 1; text-align: center; padding: 9px 0 10px; color: var(--sub); text-decoration: none; font-size: 12px; }
+  nav.tabs a .i { display: block; font-size: 22px; line-height: 1.2; }
+  nav.tabs a.on { color: var(--accent); font-weight: 700; }
+
+  .toast { position: fixed; left: 50%; bottom: calc(92px + env(safe-area-inset-bottom)); transform: translateX(-50%); background: var(--ink); color: #fff;
+    padding: 10px 16px; border-radius: 999px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 10; white-space: nowrap; }
+  .toast.show { opacity: .94; }
+  .menu { position: absolute; right: 10px; top: 40px; background: #fff; border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); z-index: 3; overflow: hidden; }
+  .menu button { display: block; width: 100%; text-align: left; background: none; border: none; padding: 11px 16px; font-size: 14px; white-space: nowrap; }
+  .menu button + button { border-top: 1px solid var(--line); }
+  .loading { text-align: center; color: var(--sub); padding: 30px; }
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>🏠 かぞくToDo</h1>
+  <span class="me" id="meBadge" hidden></span>
+</header>
+<main class="wrap" id="view"><div class="loading">読み込み中…</div></main>
+<nav class="tabs" id="tabs" hidden>
+  <a href="#today" data-tab="today"><span class="i">📅</span>きょう</a>
+  <a href="#list" data-tab="list"><span class="i">📝</span>ルーティーン</a>
+  <a href="#settings" data-tab="settings"><span class="i">⚙️</span>設定</a>
+</nav>
+<div class="toast" id="toast"></div>
+<script src="app.js"></script>
+</body>
+</html>

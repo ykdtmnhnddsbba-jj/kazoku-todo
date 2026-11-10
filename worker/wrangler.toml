@@ -1,0 +1,16 @@
+name = "kazoku-todo"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+
+# 毎分、通知が必要かチェックする
+[triggers]
+crons = ["* * * * *"]
+
+[vars]
+VAPID_SUBJECT = "https://ykdtmnhnddsbba-jj.github.io/kazoku-todo/"
+
+# setup.ps1 が `wrangler d1 create` の結果で database_id を書き換える
+[[d1_databases]]
+binding = "DB"
+database_name = "kazoku-todo"
+database_id = "REPLACE_WITH_D1_ID"

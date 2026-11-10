@@ -1,0 +1,13 @@
+{
+  "name": "kazoku-todo-worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0",
+    "http_ece": "^1.2.0"
+  }
+}
