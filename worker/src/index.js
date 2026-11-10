@@ -74,8 +74,8 @@ function reminderPayload(task, date, target, kind) {
     requireInteraction: true,
     data: { task_id: task.id, date, target },
     actions: [
+      // ボタンは1つだけ（Androidは最大3つで、Chromeの「登録解除」「常に許可」の場所を空けるため）
       { action: 'done', title: task.done_label || '完了' },
-      { action: 'snooze', title: `${task.snooze_min}分後` },
     ],
   };
 }
