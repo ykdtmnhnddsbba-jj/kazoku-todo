@@ -71,6 +71,11 @@ let state = null;          // /api/state の結果
 let viewDate = null;       // 表示中の日付
 const memberById = (id) => state?.members.find((m) => m.id === id) || { id, name: id, emoji: '🙂' };
 const me = () => cfg.me && memberById(cfg.me);
+// 顔アイコン（写真があれば写真、なければ絵文字）
+const av = (m) => m.avatar
+  ? `<img class="av" src="${esc(m.avatar)}" alt="">`
+  : `<span class="av">${esc(m.emoji)}</span>`;
+const who = (m) => `${av(m)} ${esc(m.name)}`;
 
 async function load(date) {
   state = await api('/api/state' + (date ? `?date=${date}` : ''));
@@ -95,7 +100,7 @@ async function route() {
   }
   if (!cfg.me) return renderWho();
   const b = document.getElementById('meBadge');
-  b.hidden = false; b.textContent = `${me().emoji} ${me().name}`;
+  b.hidden = false; b.innerHTML = who(me());
 
   if (name === 'list') return renderList();
   if (name === 'edit') return renderEdit(arg);
@@ -113,7 +118,7 @@ function renderNoConfig() {
 function renderWho(fromSettings) {
   $view.innerHTML = `<h2 class="sec">あなたはだれ？</h2>
     <div class="who-pick">${state.members.map((m) =>
-      `<button data-id="${m.id}" class="${cfg.me === m.id ? 'on' : ''}"><span class="e">${esc(m.emoji)}</span>${esc(m.name)}</button>`).join('')}</div>
+      `<button data-id="${m.id}" class="${cfg.me === m.id ? 'on' : ''}">${av(m)}${esc(m.name)}</button>`).join('')}</div>
     <p class="hint" style="text-align:center;margin-top:14px">この端末に届く通知の宛先になります</p>
     ${IS_ANDROID && !IS_CHROME ? `<div class="banner" style="margin-top:16px"><span style="font-size:24px">⚠️</span><p>今はChrome以外のブラウザで開いてるよ。通知を使うにはChromeで開いてね</p>${openChromeBtn()}</div>` : ''}`;
   $view.querySelectorAll('.who-pick button').forEach((b) => b.onclick = async () => {
@@ -213,15 +218,15 @@ function cardHtml(it, idx) {
   if (t.mode === 'any') {
     const x = it.targets[0];
     chips = x.done_at
-      ? `<button class="chip done" data-toggle="${idx}|*">✅ ${esc(memberById(x.done_by).emoji)} ${esc(memberById(x.done_by).name)}が${esc(t.done_label)}</button>`
-      : t.assignees.map((a) => `<span class="chip ${x.notify_count > 1 ? 'nag' : 'wait'}">${esc(memberById(a).emoji)} ${esc(memberById(a).name)}</span>`).join('')
+      ? `<button class="chip done" data-toggle="${idx}|*">✅ ${who(memberById(x.done_by))}が${esc(t.done_label)}</button>`
+      : t.assignees.map((a) => `<span class="chip ${x.notify_count > 1 ? 'nag' : 'wait'}">${who(memberById(a))}</span>`).join('')
         + (x.notify_count ? `<span class="chip nag">🔔×${x.notify_count}</span>` : '');
   } else {
     chips = it.targets.map((x) => {
       const m = memberById(x.target);
       const cls = x.done_at ? 'done' : x.notify_count > 1 ? 'nag' : 'wait';
       const mark = x.done_at ? '✅' : x.notify_count ? `🔔${x.notify_count}` : '⬜';
-      return `<button class="chip ${cls}" data-toggle="${idx}|${x.target}">${mark} ${esc(m.emoji)} ${esc(m.name)}</button>`;
+      return `<button class="chip ${cls}" data-toggle="${idx}|${x.target}">${mark} ${who(m)}</button>`;
     }).join('');
   }
 
@@ -323,7 +328,7 @@ function renderList() {
   const past = once.filter((t) => t.sched.date < state.today);
   const row = (t) => `<button class="item ${t.active ? '' : 'off'}" data-id="${t.id}">
       <div class="t"><b>${esc(t.title)}</b><span>${esc(schedText(t.sched))}${t.active ? '' : '（停止中）'}${t.snooze_min ? `・🔁${t.snooze_min}分×${t.max_renotify}` : ''}</span></div>
-      <span class="who">${t.assignees.map((a) => esc(memberById(a).emoji)).join('')}</span></button>`;
+      <span class="who">${t.assignees.map((a) => av(memberById(a))).join('')}</span></button>`;
   $view.innerHTML = `
     <h2 class="sec">毎週のルーティーン</h2>
     <div class="list">${weekly.map(row).join('') || '<p class="hint">まだないよ</p>'}</div>
@@ -357,7 +362,7 @@ function renderEdit(id) {
       <div class="field" id="dateF"><label>日にち</label><input type="date" name="date" value="${esc(t.sched.date)}"></div>
       <div class="field"><label>通知する時刻</label><input type="time" name="time" value="${esc(t.sched.time)}" required></div>
     </div>
-    <div class="field"><span class="lbl">だれに</span>${seg('assignees', state.members.map((m) => [m.id, `${m.emoji} ${m.name}`]), t.assignees, true)}</div>
+    <div class="field"><span class="lbl">だれに</span>${seg('assignees', state.members.map((m) => [m.id, who(m)]), t.assignees, true)}</div>
     <div class="field" id="modeF"><span class="lbl">完了のしかた</span>${seg('mode', [['each', '全員それぞれ'], ['any', '誰か1人でOK']], t.mode)}
       <p class="hint">「誰か1人でOK」は、1人が押すとほかの人の通知が止まります（迎えなど）</p></div>
     <div class="two">
@@ -439,7 +444,7 @@ async function renderSettings() {
   const invite = `${location.origin}${location.pathname}?api=${encodeURIComponent(cfg.api)}&k=${encodeURIComponent(cfg.key)}&openExternalBrowser=1`;
   $view.innerHTML = `
     <div class="panel"><h3>この端末</h3>
-      <p>使う人：<b>${esc(me().emoji)} ${esc(me().name)}</b> <button class="btn ghost" id="chgMe" style="padding:6px 10px;margin-left:6px">変更</button></p>
+      <p>使う人：<b>${who(me())}</b> <button class="btn ghost" id="chgMe" style="padding:6px 10px;margin-left:6px">変更</button></p>
       <p>通知：${psText}</p>
       <div class="act">
         ${ps === 'off' ? '<button class="btn big" id="pushOn">通知をONにする</button>' : ''}
@@ -456,8 +461,12 @@ async function renderSettings() {
         <li>「音」「バイブ」もONにしておくと気付きやすい</li>
       </ol>
     </div>
-    <div class="panel"><h3>家族の名前</h3>
-      ${state.members.map((m) => `<div class="mrow" data-id="${m.id}"><input value="${esc(m.emoji)}" maxlength="4" aria-label="絵文字"><input value="${esc(m.name)}" maxlength="12" aria-label="名前"></div>`).join('')}
+    <div class="panel"><h3>家族のアイコンと名前</h3>
+      <p class="hint" style="margin-top:-4px">丸をタップすると写真を選べるよ（写真がないときは絵文字を表示）</p>
+      ${state.members.map((m) => `<div class="mrow" data-id="${m.id}">
+        <button type="button" class="avbtn" data-av="${m.id}" aria-label="${esc(m.name)}の写真">${m.avatar ? `<img src="${esc(m.avatar)}" alt="">` : esc(m.emoji)}<span class="cam">📷</span></button>
+        <input value="${esc(m.emoji)}" maxlength="4" aria-label="絵文字"><input value="${esc(m.name)}" maxlength="12" aria-label="名前"></div>`).join('')}
+      <input type="file" accept="image/*" id="avFile" hidden>
       <button class="btn" id="saveMembers">名前を保存</button>
     </div>
     <div class="panel"><h3>家族を招待</h3>
@@ -479,15 +488,54 @@ async function renderSettings() {
   };
   document.getElementById('saveMembers').onclick = async () => {
     const members = [...document.querySelectorAll('.mrow')].map((r) => {
-      const [e, n] = r.querySelectorAll('input');
+      const [e, n] = r.querySelectorAll('input:not([type=file])');
       return { id: r.dataset.id, emoji: e.value.trim() || '🙂', name: n.value.trim() || r.dataset.id };
     });
     try { await api('/api/members', { body: { members } }); await load(viewDate); toast('保存したよ'); renderSettings(); route(); }
     catch (e) { toast(e.message); }
   };
+  // 写真を選ぶ → 正方形に切り抜いて小さくしてから保存
+  const avFile = document.getElementById('avFile');
+  let avTarget = null;
+  $view.querySelectorAll('[data-av]').forEach((b) => b.onclick = () => {
+    avTarget = b.dataset.av;
+    const m = memberById(avTarget);
+    if (m.avatar && confirm(`${m.name}の写真を外して絵文字に戻す？\n（キャンセルで別の写真を選ぶ）`)) {
+      api('/api/avatar', { body: { member_id: avTarget, data: null } }).then(() => load(viewDate)).then(() => { toast('絵文字に戻したよ'); renderSettings(); route(); }).catch((e) => toast(e.message));
+      return;
+    }
+    avFile.value = ''; avFile.click();
+  });
+  avFile.onchange = async () => {
+    const f = avFile.files[0]; if (!f || !avTarget) return;
+    try {
+      toast('写真を準備中…');
+      const data = await squareImage(f, 128);
+      await api('/api/avatar', { body: { member_id: avTarget, data } });
+      await load(viewDate); toast('アイコンを変えたよ'); renderSettings(); route();
+    } catch (e) { toast(e.message || '写真を読み込めなかった'); }
+  };
   document.getElementById('copyInv').onclick = async () => {
     try { await navigator.clipboard.writeText(invite); toast('コピーしたよ'); } catch (e) { toast('コピーできなかった…長押しで選択してね'); }
   };
+}
+
+function squareImage(file, size) {
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const s = Math.min(img.naturalWidth, img.naturalHeight);
+      const c = document.createElement('canvas'); c.width = c.height = size;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, size, size);
+      ctx.drawImage(img, (img.naturalWidth - s) / 2, (img.naturalHeight - s) / 2, s, s, 0, 0, size, size);
+      URL.revokeObjectURL(url);
+      res(c.toDataURL('image/jpeg', 0.82));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('この写真は読み込めなかった')); };
+    img.src = url;
+  });
 }
 
 // ---------- 起動 ----------

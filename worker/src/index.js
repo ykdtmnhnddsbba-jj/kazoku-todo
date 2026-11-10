@@ -31,6 +31,15 @@ async function loadTasks(db, activeOnly = false) {
   return results.map(parseTask);
 }
 
+// 既存のDBに後から足した列を自動で追加する（手作業のマイグレーション不要）
+let schemaChecked = false;
+async function ensureSchema(db) {
+  if (schemaChecked) return;
+  try { await db.prepare('SELECT avatar FROM members LIMIT 1').all(); }
+  catch (e) { await db.prepare('ALTER TABLE members ADD COLUMN avatar TEXT').run(); }
+  schemaChecked = true;
+}
+
 async function loadMembers(db) {
   const { results } = await db.prepare('SELECT * FROM members ORDER BY sort, id').all();
   return results;
@@ -166,6 +175,7 @@ async function handleApi(req, env, url) {
   const db = env.DB;
   const path = url.pathname.replace(/\/+$/, '');
   const body = req.method === 'POST' ? await req.json().catch(() => ({})) : {};
+  await ensureSchema(db);
 
   if (path === '/api/state' && req.method === 'GET') {
     const date = url.searchParams.get('date') || jstParts().ymd;
@@ -260,6 +270,15 @@ async function handleApi(req, env, url) {
     const { task_id, date, undo } = body;
     if (undo) await db.prepare('DELETE FROM skips WHERE task_id = ? AND date = ?').bind(task_id, date).run();
     else await db.prepare('INSERT OR IGNORE INTO skips (task_id, date) VALUES (?, ?)').bind(task_id, date).run();
+    return json({ ok: true });
+  }
+
+  if (path === '/api/avatar' && req.method === 'POST') {
+    const { member_id, data } = body;
+    if (data && (!/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(data) || data.length > 80000)) {
+      return json({ error: '画像が大きすぎるか、形式が違うよ' }, 400);
+    }
+    await db.prepare('UPDATE members SET avatar = ? WHERE id = ?').bind(data || null, member_id).run();
     return json({ ok: true });
   }
 

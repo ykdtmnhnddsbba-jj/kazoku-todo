@@ -6,7 +6,8 @@ CREATE TABLE IF NOT EXISTS members (
   name TEXT NOT NULL,
   emoji TEXT NOT NULL DEFAULT '🙂',
   is_admin INTEGER NOT NULL DEFAULT 0,
-  sort INTEGER NOT NULL DEFAULT 0
+  sort INTEGER NOT NULL DEFAULT 0,
+  avatar TEXT                             -- 顔アイコン（data URL、128px程度のJPEG）
 );
 
 CREATE TABLE IF NOT EXISTS tasks (
