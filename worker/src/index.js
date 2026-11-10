@@ -64,18 +64,18 @@ async function pushToMember(env, memberId, payload) {
 }
 
 function reminderPayload(task, date, target, kind) {
-  const prefix = kind === 'first' ? '' : '🔁 ';
-  const body = [task.note, task.checklist.length ? '☐ ' + task.checklist.join('　☐ ') : ''].filter(Boolean).join('\n');
+  const prefix = kind === 'first' ? '' : '（再）';
+  const body = [task.note, task.checklist.length ? task.checklist.join('・') : ''].filter(Boolean).join('\n');
   return {
     title: `${prefix}${task.title}`,
-    body: body || `${task.sched.time} のお知らせ`,
+    body: body || `${task.sched.time} の予定`,
     tag: `${task.id}|${date}|${target}`,
     renotify: true,
     requireInteraction: true,
     data: { task_id: task.id, date, target },
     actions: [
-      { action: 'done', title: `✅ ${task.done_label || '完了'}` },
-      { action: 'snooze', title: `⏰ ${task.snooze_min}分後` },
+      { action: 'done', title: task.done_label || '完了' },
+      { action: 'snooze', title: `${task.snooze_min}分後` },
     ],
   };
 }
@@ -159,7 +159,7 @@ async function markDone(env, { task_id, date, target, by, undo }) {
       const member = await db.prepare('SELECT name FROM members WHERE id = ?').bind(by).first();
       for (const m of task.assignees.filter((a) => a !== by)) {
         await pushToMember(env, m, {
-          title: `👍 ${member?.name || '誰か'}が「${task.done_label}」`,
+          title: `${member?.name || '誰か'}が「${task.done_label}」`,
           body: task.title,
           tag: `${task_id}|${date}|${target}`,
           silent: true,
@@ -205,7 +205,7 @@ async function handleApi(req, env, url) {
 
   if (path === '/api/test-push' && req.method === 'POST') {
     const sent = await pushToMember(env, body.member_id, {
-      title: '🔔 テスト通知', body: '通知が届いたよ！これで準備OK', tag: 'test', data: { info: true }, actions: [],
+      title: 'かぞくToDo テスト', body: 'この端末で通知を受け取れます', tag: 'test', data: { info: true }, actions: [],
     });
     return json({ ok: true, sent });
   }

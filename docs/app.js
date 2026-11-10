@@ -460,6 +460,7 @@ async function renderSettings() {
         <li>「<b>ポップアップで表示</b>」をON（機種によっては重要度を「<b>緊急</b>」に）</li>
         <li>「音」「バイブ」もONにしておくと気付きやすい</li>
       </ol>
+      <p style="margin-top:12px"><b>「不正な通知が届きました」と出たら</b>：Chromeの迷惑通知チェックの誤判定だよ。タップ →「通知を表示」→「<b>常に許可</b>」を選んでね。<b>「登録解除」は押さないで</b>。</p>
     </div>
     <div class="panel"><h3>家族のアイコンと名前</h3>
       <p class="hint" style="margin-top:-4px">丸をタップすると写真を選べるよ（写真がないときは絵文字を表示）</p>
