@@ -114,7 +114,8 @@ function renderWho(fromSettings) {
   $view.innerHTML = `<h2 class="sec">あなたはだれ？</h2>
     <div class="who-pick">${state.members.map((m) =>
       `<button data-id="${m.id}" class="${cfg.me === m.id ? 'on' : ''}"><span class="e">${esc(m.emoji)}</span>${esc(m.name)}</button>`).join('')}</div>
-    <p class="hint" style="text-align:center;margin-top:14px">この端末に届く通知の宛先になります</p>`;
+    <p class="hint" style="text-align:center;margin-top:14px">この端末に届く通知の宛先になります</p>
+    ${IS_ANDROID && !IS_CHROME ? `<div class="banner" style="margin-top:16px"><span style="font-size:24px">⚠️</span><p>今はChrome以外のブラウザで開いてるよ。通知を使うにはChromeで開いてね</p>${openChromeBtn()}</div>` : ''}`;
   $view.querySelectorAll('.who-pick button').forEach((b) => b.onclick = async () => {
     const changed = cfg.me && cfg.me !== b.dataset.id;
     cfg.me = b.dataset.id; saveCfg();
@@ -130,7 +131,14 @@ async function swReg() {
   return navigator.serviceWorker.register('sw.js');
 }
 // LINEなどアプリ内ブラウザでは通知が使えない
-const IN_APP = /\bLine\/|FBAN|FBAV|Instagram|; wv\)/i.test(navigator.userAgent);
+const IN_APP = /\bLine\/|FBAN|FBAV|Instagram|Sleipnir|; wv\)/i.test(navigator.userAgent);
+const IS_ANDROID = /Android/i.test(navigator.userAgent);
+const IS_CHROME = /Chrome\//.test(navigator.userAgent) && !/; wv\)|EdgA|SamsungBrowser|OPR|Sleipnir|Line\//i.test(navigator.userAgent);
+function chromeUrl() {
+  const q = `?api=${encodeURIComponent(cfg.api)}&k=${encodeURIComponent(cfg.key)}`;
+  return `intent://${location.host}${location.pathname}${q}#Intent;scheme=https;package=com.android.chrome;end`;
+}
+const openChromeBtn = () => (IS_ANDROID && !IS_CHROME) ? `<a class="btn" href="${esc(chromeUrl())}" style="text-decoration:none;white-space:nowrap">Chromeで開く</a>` : '';
 async function pushStatus() {
   if (IN_APP) return 'inapp';
   if (!('PushManager' in window)) return 'unsupported';
@@ -175,9 +183,8 @@ async function renderToday() {
   if (ps !== 'on') {
     html += `<div class="banner"><span style="font-size:24px">🔕</span><p>${ps === 'denied'
       ? 'この端末は通知がブロックされています。Chromeの「サイトの設定」から通知を許可してね'
-      : ps === 'inapp' ? 'LINEの中のブラウザでは通知できないよ。設定画面の招待リンクをコピーして、Chromeに貼って開いてね'
-      : ps === 'unsupported' ? 'このブラウザは通知に対応していないよ。Chromeで開いてね'
-      : 'この端末の通知がまだオフです'}</p>${ps === 'off' ? '<button class="btn" id="pushOn">ONにする</button>' : ''}</div>`;
+      : ps === 'inapp' || ps === 'unsupported' ? 'このブラウザでは通知できないよ。Chromeで開き直してね'
+      : 'この端末の通知がまだオフです'}</p>${ps === 'off' ? '<button class="btn" id="pushOn">ONにする</button>' : openChromeBtn()}</div>`;
   }
   if (!items.length) {
     html += `<div class="empty"><div class="em">🌿</div><p>この日の予定はないよ</p></div>`;
@@ -428,7 +435,7 @@ function renderEdit(id) {
 // ---------- 設定 ----------
 async function renderSettings() {
   const ps = await pushStatus().catch(() => 'off');
-  const psText = { on: '✅ ON', off: '🔕 OFF', denied: '⛔ ブロック中（Chromeのサイト設定で許可してね）', unsupported: '❌ このブラウザは非対応（Chromeで開いてね）', inapp: '❌ LINEの中のブラウザでは使えないよ。下の招待リンクをコピーしてChromeで開いてね' }[ps];
+  const psText = { on: '✅ ON', off: '🔕 OFF', denied: '⛔ ブロック中（Chromeのサイト設定で許可してね）', unsupported: '❌ このブラウザでは使えないよ（Chromeで開いてね）', inapp: '❌ このブラウザでは使えないよ（Chromeで開いてね）' }[ps];
   const invite = `${location.origin}${location.pathname}?api=${encodeURIComponent(cfg.api)}&k=${encodeURIComponent(cfg.key)}&openExternalBrowser=1`;
   $view.innerHTML = `
     <div class="panel"><h3>この端末</h3>
@@ -437,6 +444,7 @@ async function renderSettings() {
       <div class="act">
         ${ps === 'off' ? '<button class="btn big" id="pushOn">通知をONにする</button>' : ''}
         ${ps === 'on' ? '<button class="btn ghost big" id="testPush">テスト通知を送る</button>' : ''}
+        ${ps === 'inapp' || ps === 'unsupported' ? openChromeBtn() : ''}
       </div>
     </div>
     <div class="panel"><h3>家族の名前</h3>
