@@ -63,7 +63,7 @@ const addDays = (ymd, n) => {
 const dowOf = (ymd) => { const [y, m, d] = ymd.split('-').map(Number); return new Date(Date.UTC(y, m - 1, d)).getUTCDay(); };
 const hm = (ms) => { const d = new Date(ms); return `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`; };
 const fmtDate = (ymd) => { const [, m, d] = ymd.split('-').map(Number); return `${m}月${d}日（${DOW[dowOf(ymd)]}）`; };
-const schedText = (s) => s.type === 'someday' ? 'いつか' : s.type === 'once'
+const schedText = (s) => s.type === 'someday' ? '日付未定' : s.type === 'once'
   ? `${fmtDate(s.date)} ${s.time}`
   : `毎週 ${[...s.days].sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7)).map((d) => DOW[d]).join('・')} ${s.time}`;
 
@@ -186,9 +186,9 @@ async function renderToday() {
   const isToday = d === state.today;
   let html = `<div class="daynav">
       <button class="iconbtn" data-go="-1" aria-label="前の日">◀</button>
-      <div class="date">${fmtDate(d)}${isToday ? '<small>きょう</small>' : ''}</div>
+      <div class="date">${fmtDate(d)}${isToday ? '<small>本日</small>' : ''}</div>
       <span class="sp"></span>
-      ${isToday ? '' : '<button class="iconbtn" data-go="0">きょう</button>'}
+      ${isToday ? '' : '<button class="iconbtn" data-go="0">本日</button>'}
       <button class="iconbtn" data-go="1" aria-label="次の日">▶</button>
     </div>`;
   if (ps !== 'on') {
@@ -259,7 +259,7 @@ function cardHtml(it, idx) {
   const stamp = allDone && !it.skipped ? `<span class="stamp${justDone.has(stampKey) ? ' new' : ''}" style="top:-14px;right:44px">CLEAR!</span>` : '';
   justDone.delete(stampKey);
   return `<div class="card ${mine ? 'mine' : ''} ${allDone ? 'alldone' : ''} ${it.skipped ? 'skipped' : ''}">${stamp}
-      <div class="row1">${someday ? '<span class="time someday">いつか</span>' : `<span class="time">${esc(t.sched.time)}</span>`}<h3>${esc(t.title)}</h3>
+      <div class="row1">${someday ? '<span class="time someday">未定</span>' : `<span class="time">${esc(t.sched.time)}</span>`}<h3>${esc(t.title)}</h3>
         <button class="more" data-menu="${idx}" aria-label="メニュー">⋯</button></div>
       ${t.note ? `<p class="note">${esc(t.note)}</p>` : ''}
       ${it.skipped ? '<div class="chips"><span class="chip wait">💤 今日はなし</span></div>' : `<div class="chips">${chips}</div>`}
@@ -344,14 +344,14 @@ function renderSomeday() {
   const card = (it) => cardHtml(it, items.indexOf(it));
   cur = { items, date: 'someday', rerender: renderSomeday };
   $view.innerHTML = `
-    <p class="lead">日にちは決まってないけど、いつかやること。通知はしないから、ときどき見てね。</p>
+    <p class="lead">日にちは未定だけど、いつかやる任務。通知はしないから、ときどき確認してね。</p>
     <div class="filter">
       <button data-f="all" class="${somedayFilter === 'all' ? 'on' : ''}">みんなの（${all.filter((it) => !allDone(it)).length}）</button>
       <button data-f="mine" class="${somedayFilter === 'mine' ? 'on' : ''}">${who(me())}の（${all.filter((it) => isMine(it) && !allDone(it)).length}）</button>
     </div>
-    ${todo.length ? `<div class="grid">${todo.map(card).join('')}</div>` : '<div class="empty"><div class="em">🎉</div><p>いつかやることは全部すんだ！</p></div>'}
-    ${done.length ? `<h2 class="sec">すんだもの</h2><div class="grid">${done.map(card).join('')}</div>` : ''}
-    <button class="fab" aria-label="いつかやることを追加" onclick="location.hash='#edit/new-someday'">＋</button>`;
+    ${todo.length ? `<div class="grid">${todo.map(card).join('')}</div>` : '<div class="empty"><div class="em">🎉</div><p>未定任務はすべて完了！</p></div>'}
+    ${done.length ? `<h2 class="sec">完了した任務</h2><div class="grid">${done.map(card).join('')}</div>` : ''}
+    <button class="fab" aria-label="未定任務を追加" onclick="location.hash='#edit/new-someday'">＋</button>`;
   $view.querySelectorAll('[data-f]').forEach((b) => b.onclick = () => { somedayFilter = b.dataset.f; renderSomeday(); });
   bindCards();
 }
@@ -368,11 +368,11 @@ function renderList() {
       <div class="t"><b>${esc(t.title)}</b><span>${esc(schedText(t.sched))}${t.active ? '' : '（停止中）'}${t.snooze_min ? `・🔁${t.snooze_min}分×${t.max_renotify}` : ''}</span></div>
       <span class="who">${t.assignees.map((a) => av(memberById(a))).join('')}</span></button>`;
   $view.innerHTML = `
-    <h2 class="sec">毎週のルーティーン</h2>
+    <h2 class="sec">毎週の任務</h2>
     <div class="list">${weekly.map(row).join('') || '<p class="hint">まだないよ</p>'}</div>
-    <h2 class="sec">日にち指定のToDo</h2>
+    <h2 class="sec">日にち指定の任務</h2>
     <div class="list">${upcoming.map(row).join('') || '<p class="hint">まだないよ</p>'}</div>
-    ${past.length ? `<h2 class="sec">終わったToDo</h2><div class="list">${past.slice(-10).reverse().map(row).join('')}</div>` : ''}
+    ${past.length ? `<h2 class="sec">終わった任務</h2><div class="list">${past.slice(-10).reverse().map(row).join('')}</div>` : ''}
     <button class="fab" aria-label="追加" onclick="location.hash='#edit/new'">＋</button>`;
   $view.querySelectorAll('.item').forEach((b) => b.onclick = () => { location.hash = '#edit/' + b.dataset.id; });
 }
@@ -393,10 +393,10 @@ function renderEdit(id) {
   const seg = (name, opts, cur, multi) => `<div class="seg" data-seg="${name}">${opts.map(([v, l]) =>
     `<button type="button" data-v="${v}" class="${(multi ? cur.includes(v) : cur === v) ? 'on' : ''}">${l}</button>`).join('')}</div>`;
 
-  $view.innerHTML = `<h2 class="sec">${base ? '編集' : '新しく追加'}</h2>
+  $view.innerHTML = `<h2 class="sec">${base ? '任務を編集' : '新しい任務'}</h2>
   <form class="edit" id="f">
     <div class="field"><label>タイトル</label><input type="text" name="title" value="${esc(t.title)}" placeholder="例：集金袋を出す" required maxlength="80"></div>
-    <div class="field"><span class="lbl">いつ</span>${seg('type', [['weekly', '毎週'], ['once', '日にち指定'], ['someday', 'いつか']], t.sched.type)}
+    <div class="field"><span class="lbl">いつ</span>${seg('type', [['weekly', '毎週'], ['once', '日にち指定'], ['someday', '日付未定']], t.sched.type)}
       <p class="hint" id="somedayHint">日にちが決まったら「日にち指定」に変えると、その日に通知されるよ</p></div>
     <div class="field" id="daysF"><span class="lbl">曜日</span>${seg('days', [1, 2, 3, 4, 5, 6, 0].map((d) => [d, DOW[d]]), t.sched.days, true)}</div>
     <div class="two" id="whenF">
