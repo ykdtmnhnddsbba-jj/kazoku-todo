@@ -1,5 +1,5 @@
 // HOME✦MISSION Service Worker：通知の表示と、通知ボタン（完了・スヌーズ）の処理
-const VERSION = 'v13';
+const VERSION = 'v14';
 const SHELL = ['./', './index.html', './app.js', './manifest.webmanifest', './icons/icon-192.png', './icons/badge-96.png'];
 
 self.addEventListener('install', (e) => {

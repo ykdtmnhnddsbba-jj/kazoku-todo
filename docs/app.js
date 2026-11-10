@@ -93,7 +93,7 @@ async function route() {
   const hash = location.hash.slice(1) || 'today';
   const [name, arg] = hash.split('/');
   document.getElementById('tabs').hidden = !(cfg.api && cfg.me);
-  const editTab = arg === 'new-someday' || state?.tasks.find((t) => t.id === arg)?.sched.type === 'someday' ? 'someday' : 'list';
+  const editTab = arg === 'new-today' ? 'today' : arg === 'new-someday' || state?.tasks.find((t) => t.id === arg)?.sched.type === 'someday' ? 'someday' : 'list';
   document.querySelectorAll('nav.tabs a').forEach((a) => a.classList.toggle('on', a.dataset.tab === (name === 'edit' ? editTab : name)));
 
   if (!cfg.api || !cfg.key) return renderNoConfig();
@@ -202,6 +202,7 @@ async function renderToday() {
   } else {
     html += `<div class="grid">${items.map(cardHtml).join('')}</div>`;
   }
+  html += `<button class="fab" aria-label="この日に任務を追加" onclick="location.hash='#edit/new-today'">＋</button>`;
   cur = { items, date: d, rerender: renderToday };
   $view.innerHTML = html;
 
@@ -378,17 +379,24 @@ function renderList() {
 }
 
 // ---------- 追加・編集 ----------
+// 今日の任務を足すときは「次の30分区切り」、それ以外は 7:30
+function defaultTime() {
+  if ((viewDate || state.today) !== state.today) return '07:30';
+  const d = new Date(); let m = d.getHours() * 60 + d.getMinutes();
+  m = Math.min(23 * 60 + 30, Math.ceil((m + 1) / 30) * 30);
+  return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+}
 function renderEdit(id) {
   const base = state.tasks.find((t) => t.id === id);
   const t = base ? JSON.parse(JSON.stringify(base)) : {
     title: '', note: '', checklist: [], assignees: [cfg.me], mode: 'each',
-    sched: { type: id === 'new-someday' ? 'someday' : 'once', date: viewDate || state.today, time: '07:30', days: [dowOf(state.today)] },
+    sched: { type: id === 'new-someday' ? 'someday' : 'once', date: viewDate || state.today, time: defaultTime(), days: [dowOf(viewDate || state.today)] },
     snooze_min: 10, max_renotify: 2, done_label: '完了', active: true,
   };
   if (!t.sched.days) t.sched.days = [dowOf(t.sched.date || state.today)];
   if (!t.sched.date) t.sched.date = state.today;
   if (!t.sched.time) t.sched.time = '07:30';
-  const backTo = () => (t.sched.type === 'someday' ? '#someday' : '#list');
+  const backTo = () => (id === 'new-today' ? '#today' : t.sched.type === 'someday' ? '#someday' : '#list');
 
   const seg = (name, opts, cur, multi) => `<div class="seg" data-seg="${name}">${opts.map(([v, l]) =>
     `<button type="button" data-v="${v}" class="${(multi ? cur.includes(v) : cur === v) ? 'on' : ''}">${l}</button>`).join('')}</div>`;
