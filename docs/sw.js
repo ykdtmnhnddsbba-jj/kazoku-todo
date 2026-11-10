@@ -1,19 +1,20 @@
 // HOME✦MISSION Service Worker：通知の表示と、通知ボタン（完了・スヌーズ）の処理
-const VERSION = 'v14';
+const VERSION = 'v15';
 const SHELL = ['./', './index.html', './app.js', './manifest.webmanifest', './icons/icon-192.png', './icons/badge-96.png'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
 });
+self.addEventListener('message', (e) => { if (e.data === 'version') e.source?.postMessage({ version: VERSION }); });
 self.addEventListener('activate', (e) => {
   e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== VERSION).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
 });
-// 画面ファイルはネット優先（更新がすぐ反映される）、つながらないときだけキャッシュ
+// 画面ファイルはネット優先。ブラウザのHTTPキャッシュ(GitHub Pagesは10分)も使わず毎回確認する
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET' || url.origin !== location.origin) return;
   e.respondWith(
-    fetch(e.request).then((res) => {
+    fetch(url.href, { cache: 'no-cache' }).then((res) => {
       const copy = res.clone();
       caches.open(VERSION).then((c) => c.put(e.request, copy));
       return res;

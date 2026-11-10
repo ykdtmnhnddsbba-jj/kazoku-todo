@@ -532,7 +532,8 @@ async function renderSettings() {
     </div>
     <div class="panel"><h3>ホーム画面に追加</h3>
       <p>Chromeの右上「⋮」→「ホーム画面に追加」（または「アプリをインストール」）で、アプリのように開けます。</p>
-    </div>`;
+    </div>
+    <p class="hint" style="text-align:center">アプリのバージョン：${esc(swVersion || '確認中')}</p>`;
   document.getElementById('chgMe').onclick = () => renderWho(true);
   const po = document.getElementById('pushOn');
   if (po) po.onclick = () => subscribePush().then(renderSettings).catch((e) => toast(e.message));
@@ -594,12 +595,21 @@ function squareImage(file, size) {
 }
 
 // ---------- 起動 ----------
+// 新しい版の Service Worker に切り替わったら、画面も読み込み直す
+let swVersion = '';
+if ('serviceWorker' in navigator) {
+  const hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadController) location.reload(); });
+  navigator.serviceWorker.addEventListener('message', (e) => { if (e.data?.version) swVersion = e.data.version; });
+  navigator.serviceWorker.ready.then((r) => r.active?.postMessage('version')).catch(() => {});
+}
 swReg().catch(() => {});
 // 「自分は誰か」などの保存内容を、容量不足のときに消されないよう保護を頼む
 try { navigator.storage?.persist?.(); } catch (e) { /* 何もしない */ }
 if (cfg.api) idbSet('cfg', cfg);
 // 画面に戻ってきたら最新にする（通知から完了したときなど）
 document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState === 'visible') navigator.serviceWorker?.getRegistration().then((r) => r?.update()).catch(() => {});
   if (document.visibilityState === 'visible' && cfg.api && cfg.me) {
     try { await load(viewDate); if ((location.hash || '#today').startsWith('#today')) renderToday(); } catch (e) { /* 何もしない */ }
   }
