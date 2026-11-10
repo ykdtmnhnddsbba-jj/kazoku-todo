@@ -492,6 +492,8 @@ async function renderSettings() {
 
 // ---------- 起動 ----------
 swReg().catch(() => {});
+// 「自分は誰か」などの保存内容を、容量不足のときに消されないよう保護を頼む
+try { navigator.storage?.persist?.(); } catch (e) { /* 何もしない */ }
 if (cfg.api) idbSet('cfg', cfg);
 // 画面に戻ってきたら最新にする（通知から完了したときなど）
 document.addEventListener('visibilitychange', async () => {
