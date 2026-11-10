@@ -79,7 +79,7 @@ if ($newKeys -or $env:KAZOKU_RESET_SECRETS) {
   Write-Host 'シークレットを登録したよ'
 }
 
-$invite = "https://ykdtmnhnddsbba-jj.github.io/kazoku-todo/?api=$([uri]::EscapeDataString($url))&k=$($keys.familyKey)"
+$invite = "https://ykdtmnhnddsbba-jj.github.io/kazoku-todo/?api=$([uri]::EscapeDataString($url))&k=$($keys.familyKey)&openExternalBrowser=1"
 [IO.File]::WriteAllText("$PSScriptRoot\.invite.txt", $invite, $utf8)
 Write-Host ''
 Write-Host '✅ 完了！ 下の招待リンクを家族に送ってね（.invite.txt にも保存した）' -ForegroundColor Green

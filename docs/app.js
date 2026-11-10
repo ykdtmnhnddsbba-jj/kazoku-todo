@@ -14,6 +14,7 @@ try { cfg = JSON.parse(localStorage.getItem(LS) || '{}'); } catch (e) { cfg = {}
     cfg.api = p.get('api').replace(/\/+$/, '');
     cfg.key = p.get('k');
     saveCfg();
+    p.delete('api'); p.delete('k'); p.delete('openExternalBrowser');
     history.replaceState(null, '', location.pathname + location.hash);
   }
 })();
@@ -128,7 +129,10 @@ async function swReg() {
   if (!('serviceWorker' in navigator)) return null;
   return navigator.serviceWorker.register('sw.js');
 }
+// LINEなどアプリ内ブラウザでは通知が使えない
+const IN_APP = /\bLine\/|FBAN|FBAV|Instagram|; wv\)/i.test(navigator.userAgent);
 async function pushStatus() {
+  if (IN_APP) return 'inapp';
   if (!('PushManager' in window)) return 'unsupported';
   if (Notification.permission === 'denied') return 'denied';
   const reg = await navigator.serviceWorker.getRegistration();
@@ -171,6 +175,8 @@ async function renderToday() {
   if (ps !== 'on') {
     html += `<div class="banner"><span style="font-size:24px">🔕</span><p>${ps === 'denied'
       ? 'この端末は通知がブロックされています。Chromeの「サイトの設定」から通知を許可してね'
+      : ps === 'inapp' ? 'LINEの中のブラウザでは通知できないよ。設定画面の招待リンクをコピーして、Chromeに貼って開いてね'
+      : ps === 'unsupported' ? 'このブラウザは通知に対応していないよ。Chromeで開いてね'
       : 'この端末の通知がまだオフです'}</p>${ps === 'off' ? '<button class="btn" id="pushOn">ONにする</button>' : ''}</div>`;
   }
   if (!items.length) {
@@ -422,8 +428,8 @@ function renderEdit(id) {
 // ---------- 設定 ----------
 async function renderSettings() {
   const ps = await pushStatus().catch(() => 'off');
-  const psText = { on: '✅ ON', off: '🔕 OFF', denied: '⛔ ブロック中（Chromeのサイト設定で許可してね）', unsupported: '❌ この端末は非対応' }[ps];
-  const invite = `${location.origin}${location.pathname}?api=${encodeURIComponent(cfg.api)}&k=${encodeURIComponent(cfg.key)}`;
+  const psText = { on: '✅ ON', off: '🔕 OFF', denied: '⛔ ブロック中（Chromeのサイト設定で許可してね）', unsupported: '❌ このブラウザは非対応（Chromeで開いてね）', inapp: '❌ LINEの中のブラウザでは使えないよ。下の招待リンクをコピーしてChromeで開いてね' }[ps];
+  const invite = `${location.origin}${location.pathname}?api=${encodeURIComponent(cfg.api)}&k=${encodeURIComponent(cfg.key)}&openExternalBrowser=1`;
   $view.innerHTML = `
     <div class="panel"><h3>この端末</h3>
       <p>使う人：<b>${esc(me().emoji)} ${esc(me().name)}</b> <button class="btn ghost" id="chgMe" style="padding:6px 10px;margin-left:6px">変更</button></p>
