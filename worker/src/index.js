@@ -205,7 +205,7 @@ async function handleApi(req, env, url) {
 
   if (path === '/api/test-push' && req.method === 'POST') {
     const sent = await pushToMember(env, body.member_id, {
-      title: 'かぞくToDo テスト', body: 'この端末で通知を受け取れます', tag: 'test', data: { info: true }, actions: [],
+      title: 'HOME MISSION テスト', body: 'この端末で通知を受け取れます', tag: 'test', data: { info: true }, actions: [],
     });
     return json({ ok: true, sent });
   }

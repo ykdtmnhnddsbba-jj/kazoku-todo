@@ -1,6 +1,6 @@
 {
-  "name": "HOME✦BASE",
-  "short_name": "HOMEBASE",
+  "name": "HOME✦MISSION",
+  "short_name": "HOME MISSION",
   "start_url": "./#today",
   "scope": "./",
   "display": "standalone",

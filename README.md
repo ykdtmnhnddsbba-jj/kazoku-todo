@@ -1,4 +1,4 @@
-# かぞくToDo
+# HOME✦MISSION（かぞくToDo）
 
 家族4人のルーティーン・ToDoを管理して、各自のAndroidスマホに通知するアプリ。完全無料（GitHub Pages + Cloudflare Workers/D1）。
 

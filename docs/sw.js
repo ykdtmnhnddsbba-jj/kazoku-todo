@@ -1,5 +1,5 @@
-// かぞくToDo Service Worker：通知の表示と、通知ボタン（完了・スヌーズ）の処理
-const VERSION = 'v10';
+// HOME✦MISSION Service Worker：通知の表示と、通知ボタン（完了・スヌーズ）の処理
+const VERSION = 'v11';
 const SHELL = ['./', './index.html', './app.js', './manifest.webmanifest', './icons/icon-192.png', './icons/badge-96.png'];
 
 self.addEventListener('install', (e) => {
@@ -36,9 +36,9 @@ function idbGet(k) {
 
 self.addEventListener('push', (e) => {
   let p = {};
-  try { p = e.data ? e.data.json() : {}; } catch (err) { p = { title: 'HOME BASE', body: e.data?.text() || '' }; }
+  try { p = e.data ? e.data.json() : {}; } catch (err) { p = { title: 'HOME MISSION', body: e.data?.text() || '' }; }
   e.waitUntil((async () => {
-    await self.registration.showNotification(p.title || 'HOME BASE', {
+    await self.registration.showNotification(p.title || 'HOME MISSION', {
       body: p.body || '',
       tag: p.tag,
       renotify: !!p.renotify && !!p.tag,

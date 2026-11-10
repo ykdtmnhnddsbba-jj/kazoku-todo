@@ -1,4 +1,4 @@
-// かぞくToDo 画面
+// HOME✦MISSION 画面
 'use strict';
 
 const DOW = ['日', '月', '火', '水', '木', '金', '土'];
