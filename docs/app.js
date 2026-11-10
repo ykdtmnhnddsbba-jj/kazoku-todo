@@ -61,6 +61,7 @@ const addDays = (ymd, n) => {
   return t.toISOString().slice(0, 10);
 };
 const dowOf = (ymd) => { const [y, m, d] = ymd.split('-').map(Number); return new Date(Date.UTC(y, m - 1, d)).getUTCDay(); };
+const hm = (ms) => { const d = new Date(ms); return `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`; };
 const fmtDate = (ymd) => { const [, m, d] = ymd.split('-').map(Number); return `${m}月${d}日（${DOW[dowOf(ymd)]}）`; };
 const schedText = (s) => s.type === 'once'
   ? `${fmtDate(s.date)} ${s.time}`
@@ -243,7 +244,7 @@ function cardHtml(it, idx) {
     act = `<div class="act"><button class="btn ghost big" data-skip="${idx}">今日はなし → 戻す</button></div>`;
   } else if (myTarget) {
     act = myTarget.done_at
-      ? `<div class="act"><button class="btn ghost big" data-done="${idx}|undo">取り消す</button></div>`
+      ? `<div class="donebar"><span class="ck">✅</span><span class="dt"><b>${t.mode === 'any' && myTarget.done_by ? `${esc(memberById(myTarget.done_by).name)}が${esc(t.done_label)}` : `${esc(t.done_label)}！`}</b><small>${hm(myTarget.done_at)} に完了</small></span><button class="undo" data-done="${idx}|undo">取り消す</button></div>`
       : `<div class="act"><button class="btn big" data-done="${idx}">${esc(t.done_label)}！</button></div>`;
   }
 

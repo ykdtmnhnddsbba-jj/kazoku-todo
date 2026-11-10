@@ -42,7 +42,14 @@
   .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 14px 16px; position: relative;
     border: 2px solid transparent; }
   .card.mine { border-color: var(--accent-soft); }
-  .card.alldone { opacity: .62; }
+  .card.alldone { background: #f7fbf8; }
+  .card.alldone h3, .card.alldone .note { color: var(--sub); }
+  .donebar { margin-top: 12px; display: flex; align-items: center; gap: 10px; background: var(--ok-soft); border-radius: 12px; padding: 10px 12px; }
+  .donebar .ck { font-size: 26px; line-height: 1; }
+  .donebar .dt { flex: 1; display: flex; flex-direction: column; color: #1d6b49; }
+  .donebar .dt b { font-size: 17px; }
+  .donebar .dt small { font-size: 12px; opacity: .8; }
+  .donebar .undo { border: none; background: none; color: var(--sub); font-size: 13px; text-decoration: underline; padding: 6px; }
   .card.skipped { opacity: .45; }
   .card .row1 { display: flex; align-items: baseline; gap: 10px; }
   .card .time { font-size: 15px; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
@@ -128,7 +135,7 @@
   span.av { width: auto; height: auto; background: none; vertical-align: 0; }
   .who-pick .av { width: 64px; height: 64px; display: block; margin: 0 auto 6px; font-size: 40px; line-height: 64px; }
   .item .who .av { width: 26px; height: 26px; margin-left: -4px; border: 2px solid var(--card); }
-  header.top .me .av { width: 22px; height: 22px; vertical-align: -6px; }
+  header.top .me img.av { width: 22px; height: 22px; vertical-align: -6px; }
   .mrow { grid-template-columns: 52px 56px 1fr !important; align-items: center; }
   .avbtn { width: 48px; height: 48px; border-radius: 50%; border: 2px dashed var(--line); background: #faf6f0; padding: 0; position: relative; font-size: 24px; overflow: hidden; }
   .avbtn img { width: 100%; height: 100%; object-fit: cover; display: block; }
